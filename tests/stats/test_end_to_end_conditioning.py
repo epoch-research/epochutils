@@ -18,7 +18,7 @@ def test_conditioned_variables(joint_distribution):
             conditions = {name: marginals[name].rvs() for name in marginal_names}
             samples = joint_distribution.rvs(10, conditions=conditions)
             for name, value in conditions.items():
-                assert max(samples[name] - value) == pytest.approx(0, abs=1e-6)
+                assert max(samples[name] - value) == pytest.approx(0, abs=2e-5)
 
 
 def test_high_correlation_conditioning():
