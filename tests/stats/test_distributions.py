@@ -1,9 +1,10 @@
 import pytest
 import numpy as np
 from scipy.stats import kstest
-from epochutil.stats.distributions import PieceLogUniformTransformed, TwoPieceLogUniform, TwoPieceNegLogUniform, TwoPieceFracLogUniform, TwoPieceInvFracLogUniform
+from epochutil.stats.distributions import TwoPieceUniform, TwoPieceLogUniform, TwoPieceNegLogUniform, TwoPieceFracLogUniform, TwoPieceInvFracLogUniform
 
 
+# TODO Add more of these
 dist_params_set = [
     (TwoPieceLogUniform,        [1e10, 5e20, 1e40]),
     (TwoPieceNegLogUniform,     [-1e40, -5e20, -1e10]),
@@ -73,18 +74,32 @@ def test_loguniform(dist_params_loguniform):
         assert dist.ppf(q) == pytest.approx(x, rel=1e-12)
 
 
-def test_transformed_loguniform(dist_params):
-    dist, params = dist_params
+def compare_pieceuniform_distributions(dist, baseline_class):
+    dumb_self = None
 
-    transformed_params = [dist.forward(p) for p in params]
-    loguniform = TwoPieceLogUniform(*transformed_params)
+    transformed_params = [baseline_class.backward(dumb_self, dist.forward(p)) for p in dist.params]
+    baseline = baseline_class(*transformed_params)
 
     n = 100_000
     samples = dist.rvs(size=n)
-    transformed_samples = [dist.forward(s) for s in samples]
-    baseline_samples = loguniform.rvs(size=n)
+    transformed_samples = [baseline.backward(dist.forward(s)) for s in samples]
+    baseline_samples = baseline.rvs(size=n)
 
     # Perform a Kolmogorov-Smirnov test for goodness of fit
-    # (the 0.1 threshold is pretty arbitrary)
     distance = kstest(transformed_samples, baseline_samples).statistic
     assert distance < 0.05
+
+
+def test_compare_loguniform():
+    dist = TwoPieceLogUniform(10, 20, 40)
+    compare_pieceuniform_distributions(dist, TwoPieceUniform)
+
+
+def test_compare_transformed_loguniform(dist_params):
+    """
+    Compare with log uniform (we can't compare directly with regular uniform due to integration difficulties)
+    """
+
+    dist, params = dist_params
+    #compare_pieceuniform_distributions(dist, TwoPieceLogUniform)
+    compare_pieceuniform_distributions(dist, TwoPieceUniform)

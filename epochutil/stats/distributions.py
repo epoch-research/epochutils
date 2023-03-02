@@ -2,8 +2,10 @@ from scipy.stats import rv_continuous
 import numpy as np
 
 
-class PieceLogUniformTransformed(rv_continuous):
+class PieceUniformTransformed(rv_continuous):
     # Base classes should implement these two functions
+
+    # TODO Make forward and backward not depend on self
 
     def forward(self, x):
         raise NotImplementedError
@@ -12,20 +14,21 @@ class PieceLogUniformTransformed(rv_continuous):
         raise NotImplementedError
 
     def __init__(self, low, med, high):
-        self.points = [low, med, high]
+        self.params = [low, med, high]
+        self.points = self.params.copy()
         self.points.sort()
 
         super().__init__(a = self.points[0], b = self.points[-1])
 
         for i in range(len(self.points)):
-            self.points[i] = np.log(self.forward(self.points[i]))
+            self.points[i] = self.forward(self.points[i])
 
         self.pieces = len(self.points) - 1
         self._cdf = np.vectorize(self._cdf)
         self._ppf = np.vectorize(self._ppf)
 
     def _cdf(self, x):
-        y = np.log(self.forward(x))
+        y = self.forward(x)
 
         # Integration direction
         d = +1 if (self.points[0] < self.points[-1]) else -1
@@ -51,29 +54,35 @@ class PieceLogUniformTransformed(rv_continuous):
             piece = int(q * self.pieces)
             y = self.points[piece] + (q * self.pieces - piece) * (self.points[piece+1] - self.points[piece])
 
-        x = self.backward(np.exp(y))
+        x = self.backward(y)
 
         return x
 
-class TwoPieceLogUniform(PieceLogUniformTransformed):
+class TwoPieceUniform(PieceUniformTransformed):
     forward  = lambda self, x: x
     backward = lambda self, y: y
 
-class TwoPieceNegLogUniform(PieceLogUniformTransformed):
-    forward  = lambda self, x: -x
-    backward = lambda self, y: -y
+class TwoPieceLogUniform(PieceUniformTransformed):
+    forward  = lambda self, x: np.log(x)
+    backward = lambda self, y: np.exp(y)
 
-class TwoPieceFracLogUniform(PieceLogUniformTransformed):
-    forward  = lambda self, x: x/(1 - x)
-    backward = lambda self, y: y/(1 + y)
+class TwoPieceNegLogUniform(PieceUniformTransformed):
+    forward  = lambda self, x: np.log(-x)
+    backward = lambda self, y: -np.exp(y)
 
-class TwoPieceInvFracLogUniform(PieceLogUniformTransformed):
+class TwoPieceFracLogUniform(PieceUniformTransformed):
+    forward  = lambda self, x: np.log(x/(1 - x))
+    backward = lambda self, y: np.exp(y)/(1 + np.exp(y))
+
+class TwoPieceInvFracLogUniform(PieceUniformTransformed):
     def forward(self, x):
-      z = 1 / x
-      y = z / (1. - z)
-      return y
+        z = 1 / x
+        z = z / (1. - z)
+        y = np.log(z)
+        return y
 
     def backward(self, y):
-      z = y / (1. + y)
-      x = 1 / z
-      return x
+        z = np.exp(y)
+        z = z / (1. + z)
+        x = 1 / z
+        return x
