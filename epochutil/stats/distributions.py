@@ -1,5 +1,21 @@
+# TODO
+#  * make the distributions more completed
+
+
 from scipy.stats import rv_continuous
 import numpy as np
+
+
+class Certainty(rv_continuous):
+  def __init__(self, v):
+      self.v = v
+      super().__init__(a=v, b=v)
+
+  def _ppf(self, q):
+      return self.v
+
+  def get_value(self):
+      return self.v
 
 
 class PieceUniformTransformed(rv_continuous):
