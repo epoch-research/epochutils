@@ -39,5 +39,4 @@ jobs:
 
     - name: Test with pytest
       run: |
-        ls -l
         python -m poetry run pytest -v tests
