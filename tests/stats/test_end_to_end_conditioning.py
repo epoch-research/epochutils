@@ -1,10 +1,11 @@
 import pytest
+import random
 import itertools
 import numpy as np
 from scipy import stats
 from scipy.stats import kstest
 
-from epochutil.stats.joint_distribution import JointDistributionCond
+from epochutil.stats.joint_distribution import JointDistributionCond, JointDistSampler
 
 # TODO add a test comparing with a manually calculated example
 
@@ -57,3 +58,26 @@ def test_no_correlation_conditioning():
 
         distance = kstest(samples_cond[name], marginal.cdf).statistic
         assert distance < 0.002
+
+
+def test_sample_generator(joint_distribution):
+    sample_count = 4
+    retry_count = 4
+
+    conditions = {}
+
+    rnd_state = np.random.get_state()
+    regular_samples = joint_distribution.rvs(nobs=sample_count + retry_count, conditions=conditions).to_numpy()
+
+    np.random.set_state(rnd_state)
+    generator_samples = []
+    sampler = JointDistSampler(joint_distribution, nobs=sample_count, conditions=conditions)
+    for i, sample in enumerate(sampler):
+        generator_samples.append(sample)
+        if i >= sample_count - retry_count and i < sample_count:
+            # Retry the last few samples
+            sampler.retry_last_sample()
+    generator_samples = np.array(generator_samples)
+
+    assert sampler.retry_count == retry_count
+    assert np.all(regular_samples == generator_samples)

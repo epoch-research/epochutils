@@ -117,3 +117,33 @@ class GaussianCopulaCond(GaussianCopula):
             samples.append(sample)
 
         return samples
+
+
+class JointDistSampler:
+    """
+    Utility class to draw samples from a JointDistribution, with retries
+    """
+
+    def __init__(self, joint_dist, nobs=1, **dist_kwargs):
+        self.joint_dist = joint_dist
+        self.nobs = nobs
+        self.dist_kwargs = dist_kwargs
+
+        self.samples_to_draw = nobs
+        self.retry_count = 0
+
+    def retry_last_sample(self):
+        self.samples_to_draw += 1
+        self.retry_count += 1
+
+    def __iter__(self):
+        min_samples_to_draw = 20
+
+        while self.samples_to_draw > 0:
+            samples = self.joint_dist.rvs(nobs=max(self.samples_to_draw, min_samples_to_draw), **self.dist_kwargs)
+            for _, sample in samples.iterrows():
+                self.samples_to_draw -= 1
+                yield sample
+                if self.samples_to_draw <= 0:
+                    break
+
