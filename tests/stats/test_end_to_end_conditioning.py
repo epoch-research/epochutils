@@ -61,7 +61,7 @@ def test_no_correlation_conditioning():
 
 
 def test_sample_generator(joint_distribution):
-    sample_count = 4
+    sample_count = 40
     retry_count = 4
 
     conditions = {}
