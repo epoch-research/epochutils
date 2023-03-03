@@ -24,15 +24,18 @@ class JointDistributionCond(JointDistribution):
         """
         conditions: a dictionary of conditions with the format {name of marginal: value on which to condition}
         """
-        as_df = pd.DataFrame()
 
         fixed_values = [conditions.get(name, np.nan) for name in self.marginals]
         rvs = self.wrapped.rvs(nobs=nobs, random_state=random_state, conditions=fixed_values)
+
+        return self.samples_to_df(rvs)
+
+    def samples_to_df(self, rvs):
+        df = pd.DataFrame()
         for name, i in self.dimension_names.items():
             column = rvs[:, i]
-            as_df[name] = column
-
-        return as_df
+            df[name] = column
+        return df
 
 
 class CopulaDistributionCond(CopulaDistribution):
