@@ -81,7 +81,7 @@ def joint_sample(joint_distribution):
 def seed_idfn(fixture_value):
     return f"seed={fixture_value}"
 
-# The following is a copy of This is a copy of https://github.com/tadamcz/copula-wrapper/blob/main/conftest.py
+# This is a copy of https://github.com/tadamcz/copula-wrapper/blob/main/conftest.py
 # TODO Import the contents properly
 
 n_random_seeds = int(os.environ.get('N_RAND_SEED', 1))
