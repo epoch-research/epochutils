@@ -9,7 +9,7 @@ import pytest
 import os
 from scipy import stats
 
-from epochutil.stats.joint_distribution import JointDistributionCond
+from epochutils.stats.joint_distribution import JointDistributionCond
 
 import tests.stats.seeds as seeds
 

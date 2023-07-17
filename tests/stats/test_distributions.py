@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from scipy.stats import kstest
-from epochutil.stats.distributions import TwoPieceUniform, TwoPieceLogUniform, TwoPieceNegLogUniform, TwoPieceFracLogUniform, TwoPieceInvFracLogUniform
+from epochutils.stats.distributions import TwoPieceUniform, TwoPieceLogUniform, TwoPieceNegLogUniform, TwoPieceFracLogUniform, TwoPieceInvFracLogUniform
 
 
 # TODO Add more of these

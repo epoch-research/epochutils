@@ -5,6 +5,9 @@
 from scipy.stats import rv_continuous
 import numpy as np
 
+# Import Tom's nice distributions
+from rvtools.construct import lognorm, uniform, loguniform, beta, pert, certainty
+
 
 class Certainty(rv_continuous):
   def __init__(self, v):

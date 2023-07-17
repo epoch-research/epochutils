@@ -5,7 +5,7 @@ import numpy as np
 from scipy import stats
 from scipy.stats import kstest
 
-from epochutil.stats.joint_distribution import JointDistributionCond, JointDistSampler
+from epochutils.stats.joint_distribution import JointDistributionCond, JointDistSampler
 
 # TODO add a test comparing with a manually calculated example
 
