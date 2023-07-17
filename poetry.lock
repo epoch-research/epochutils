@@ -335,25 +335,6 @@ pyparsing = ">=2.3.1"
 python-dateutil = ">=2.7"
 
 [[package]]
-name = "nonstd"
-version = "0.0.4"
-description = "Tom's non-standard library of useful classes and functions."
-category = "main"
-optional = false
-python-versions = ">=3.8,<3.12"
-files = []
-develop = false
-
-[package.dependencies]
-scipy = ">=1,<1.9"
-
-[package.source]
-type = "git"
-url = "https://github.com/tadamcz/nonstd"
-reference = "4b6152626248495b15d4318330d83e42625010ba"
-resolved_reference = "4b6152626248495b15d4318330d83e42625010ba"
-
-[[package]]
 name = "numpy"
 version = "1.24.3"
 description = "Fundamental package for array computing in Python"
@@ -763,4 +744,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.11"
-content-hash = "f634b9dd60ac07df65ad3b67988bfe4e5261df6956d567700b34c6979f07fe47"
+content-hash = "d8c18dd3bc74e0c8700453549295711a33059759657c8c4cebe5cb79b3ecd91e"
