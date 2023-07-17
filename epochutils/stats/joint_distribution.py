@@ -5,20 +5,29 @@ from scipy.stats import multivariate_normal
 from statsmodels.distributions.copula.api import GaussianCopula
 from statsmodels.distributions.copula.copulas import CopulaDistribution
 
-from copula_wrapper.joint_distribution import JointDistribution
+from rvtools.construct import CopulaJoint
 
 
-class JointDistributionCond(JointDistribution):
+class JointDistributionCond(CopulaJoint):
     """
     Joint distribution from which you can extract conditional samples.
     """
 
-    def __init__(self, marginals, rank_corr, rank_corr_method):
-        super().__init__(marginals, rank_corr, rank_corr_method)
+    def __init__(self, marginals, rank_corr, rank_corr_method='spearman'):
+        spearman_rho = None
+        kendall_tau = None
+
+        if rank_corr_method == 'spearman':
+            spearman_rho = rank_corr
+        else:
+            kendall_tau = rank_corr
+
+        super().__init__(marginals, spearman_rho=spearman_rho, kendall_tau=kendall_tau)
 
         # Hackily substitute the copula for conditionatable versions
-        copula_instance = GaussianCopulaCond(corr=self.wrapped.copula.corr, k_dim=len(self.marginals))
-        self.wrapped = CopulaDistributionCond(copula_instance, self.wrapped.marginals)
+        copula_instance = GaussianCopulaCond(corr=self._wrapped.copula.corr, k_dim=len(self.marginals))
+        self._wrapped = CopulaDistributionCond(copula_instance, self._wrapped.marginals)
+        self.dimension_names = {name: i for i, name in enumerate(self.marginals)}
 
     def rvs(self, nobs=2, random_state=None, conditions={}):
         """
@@ -26,7 +35,7 @@ class JointDistributionCond(JointDistribution):
         """
 
         fixed_values = [conditions.get(name, np.nan) for name in self.marginals]
-        rvs = self.wrapped.rvs(nobs=nobs, random_state=random_state, conditions=fixed_values)
+        rvs = self._wrapped.rvs(nobs=nobs, random_state=random_state, conditions=fixed_values)
 
         return self.samples_to_df(rvs)
 
@@ -121,7 +130,7 @@ class GaussianCopulaCond(GaussianCopula):
 
 class JointDistSampler:
     """
-    Utility class to draw samples from a JointDistribution, with retries
+    Utility class to draw samples from a CopulaJoint, with retries
     """
 
     def __init__(self, joint_dist, nobs=1, **dist_kwargs):
