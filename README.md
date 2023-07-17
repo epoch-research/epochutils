@@ -1,2 +1,2 @@
 # epochutils
-Bag of utilities for Epoch's code
+Bag of utilities for internal use
