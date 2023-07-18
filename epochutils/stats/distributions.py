@@ -111,23 +111,23 @@ class TwoPieceUniformTransformed(rv_continuous):
     def __init__(self, low, mid, high):
         self.super().__init__(low=low, mid=mid, high=high)
 
-class TwoPieceUniform(PieceUniformTransformed):
+class PieceUniform(PieceUniformTransformed):
     forward  = lambda self, x: x
     backward = lambda self, y: y
 
-class TwoPieceLogUniform(PieceUniformTransformed):
+class PieceLogUniform(PieceUniformTransformed):
     forward  = lambda self, x: np.log(x)
     backward = lambda self, y: np.exp(y)
 
-class TwoPieceNegLogUniform(PieceUniformTransformed):
+class PieceNegLogUniform(PieceUniformTransformed):
     forward  = lambda self, x: np.log(-x)
     backward = lambda self, y: -np.exp(y)
 
-class TwoPieceFracLogUniform(PieceUniformTransformed):
+class PieceFracLogUniform(PieceUniformTransformed):
     forward  = lambda self, x: np.log(x/(1 - x))
     backward = lambda self, y: np.exp(y)/(1 + np.exp(y))
 
-class TwoPieceInvFracLogUniform(PieceUniformTransformed):
+class PieceInvFracLogUniform(PieceUniformTransformed):
     def forward(self, x):
         z = 1 / x
         z = z / (1. - z)
@@ -139,3 +139,11 @@ class TwoPieceInvFracLogUniform(PieceUniformTransformed):
         z = z / (1. + z)
         x = 1 / z
         return x
+
+# Aliases
+TwoPieceUniformTransformed = PieceUniformTransformed
+TwoPieceUniform            = PieceUniform
+TwoPieceLogUniform         = PieceLogUniform
+TwoPieceNegLogUniform      = PieceNegLogUniform
+TwoPieceFracLogUniform     = PieceFracLogUniform
+TwoPieceInvFracLogUniform  = PieceInvFracLogUniform
