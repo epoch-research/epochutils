@@ -8,7 +8,7 @@ from epochutils.stats.distributions import TwoPieceUniform, TwoPieceLogUniform, 
 dist_params_set = [
     (TwoPieceLogUniform,        [1e10, 5e20, 1e40]),
     (TwoPieceNegLogUniform,     [-1e40, -5e20, -1e10]),
-    (TwoPieceInvFracLogUniform, [1e08, 1e4, 1e01]),
+    (TwoPieceInvFracLogUniform, [1e01, 1e4, 1e08]),
 ]
 
 
@@ -77,8 +77,8 @@ def test_loguniform(dist_params_loguniform):
 def compare_pieceuniform_distributions(dist, baseline_class):
     dumb_self = None
 
-    transformed_params = [baseline_class.backward(dumb_self, dist.forward(p)) for p in dist.params]
-    baseline = baseline_class(*transformed_params)
+    transformed_params = [baseline_class.backward(dumb_self, dist.forward(p)) for p in dist.quantiles.values()]
+    baseline = baseline_class(*sorted(transformed_params))
 
     n = 100_000
     samples = dist.rvs(size=n)

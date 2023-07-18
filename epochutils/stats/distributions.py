@@ -32,17 +32,39 @@ class PieceUniformTransformed(rv_continuous):
     def backward(self, x):
         raise NotImplementedError
 
-    def __init__(self, low, med, high):
-        self.params = [low, med, high]
-        self.points = self.params.copy()
-        self.points.sort()
+    def __init__(self,
+            low=None, med=None, high=None,
+            quantiles=None,
+        ):
 
-        super().__init__(a = self.points[0], b = self.points[-1])
+        if (low is not None) and (med is not None) and (high is not None) and not (low <= med <= high): 
+          raise ValueError(f"The parameters should be increasing: {low}, {med}, {high}")
 
-        for i in range(len(self.points)):
-            self.points[i] = self.forward(self.points[i])
+        # Add param checking
 
-        self.pieces = len(self.points) - 1
+        if not quantiles:
+            quantiles = {}
+        else:
+            quantiles = quantiles.copy()
+
+        if low is not None:
+            quantiles[0] = low
+        if med is not None:
+            quantiles[0.5] = med
+        if high is not None:
+            quantiles[1] = high
+
+        quantiles = {k: quantiles[k] for k in sorted(quantiles.keys())}
+
+        if list(quantiles.values()) != sorted(quantiles.values()):
+            raise ValueError(f"Inconsistent quantiles (should be increasing): {quantiles}")
+
+        self.quantiles = quantiles
+
+        super().__init__(a=self.quantiles[0], b=self.quantiles[1])
+
+        self.transformed_q = {k: self.forward(v) for k, v in self.quantiles.items()}
+
         self._cdf = np.vectorize(self._cdf)
         self._ppf = np.vectorize(self._ppf)
 
@@ -50,32 +72,44 @@ class PieceUniformTransformed(rv_continuous):
         y = self.forward(x)
 
         # Integration direction
-        d = +1 if (self.points[0] < self.points[-1]) else -1
+        d = +1 if (self.transformed_q[0] < self.transformed_q[1]) else -1
+
+        qs = list(self.transformed_q.keys())
 
         integral = 0
-        for i in range(self.pieces):
-            a = self.points[i]
-            b = self.points[i+1]
+        for i in range(len(qs) - 1):
+            mass = qs[i+1] - qs[i]
+            a = self.transformed_q[qs[i]]
+            b = self.transformed_q[qs[i+1]]
             if d*y < d*b:
-                integral += (y - a) / (b - a)
+                integral += mass * ((y - a) / (b - a))
                 break
-            integral += 1
-        integral /= self.pieces
+            else:
+                integral += mass
 
         return integral
 
     def _ppf(self, q):
         if q <= 0:
-            y = self.points[0]
+            y = self.transformed_q[0]
         elif q >= 1:
-            y = self.points[-1]
+            y = self.transformed_q[1]
         else:
-            piece = int(q * self.pieces)
-            y = self.points[piece] + (q * self.pieces - piece) * (self.points[piece+1] - self.points[piece])
+            qs = list(self.transformed_q.keys())
+            for i in range(len(qs) - 1):
+                a = qs[i]
+                b = qs[i+1]
+                if a <= q and q < b:
+                    y = self.transformed_q[a] + (self.transformed_q[b] - self.transformed_q[a]) * (q - a) / (b - a)
+                    break
 
         x = self.backward(y)
 
         return x
+
+class TwoPieceUniformTransformed(rv_continuous):
+    def __init__(self, low, mid, high):
+        self.super().__init__(low=low, mid=mid, high=high)
 
 class TwoPieceUniform(PieceUniformTransformed):
     forward  = lambda self, x: x
