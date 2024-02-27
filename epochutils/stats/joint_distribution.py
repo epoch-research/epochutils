@@ -5,7 +5,7 @@ from scipy.stats import multivariate_normal
 from statsmodels.distributions.copula.api import GaussianCopula
 from statsmodels.distributions.copula.copulas import CopulaDistribution
 
-from rvtools.construct import CopulaJoint
+from copula_wrapper import CopulaJoint
 
 
 class JointDistributionCond(CopulaJoint):
