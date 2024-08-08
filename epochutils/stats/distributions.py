@@ -167,6 +167,7 @@ class Metalog(rv_continuous):
 
         if n_terms is None:
             n_terms = len(self.quantiles)
+        self.n_terms = n_terms
 
         self.a = self._fit_metalog(self.quantiles, n_terms, self.transform)
         if self.a is None:
@@ -211,6 +212,7 @@ class Metalog(rv_continuous):
         if not feasible:
             raise ValueError(f'Failed feasibility check for quantiles {raw_quantiles}')
 
+    # Equations 7 and 8
     def _fit_metalog(self, quantiles, n_terms, transform):
         assert n_terms <= len(quantiles), 'n_terms must be less than or equal to the number of quantiles'
 
@@ -248,10 +250,10 @@ class Metalog(rv_continuous):
 
         return a
 
-    def ppf(self, y):
+    # Equation 1, 2 and 3
+    def ppf(self, y, _apply_transform=True):
         a = self.a
-
-        n = len(a)
+        n = self.n_terms
 
         mu_coeff_indices = np.concatenate(([1, 4, 5], np.arange(7, n + 1, 2)))
         mu_coeff_indices = mu_coeff_indices[mu_coeff_indices <= n]
@@ -262,14 +264,52 @@ class Metalog(rv_continuous):
         mu = np.dot(a[mu_coeff_indices-1], np.power(y - 0.5, np.vstack(np.arange(len(mu_coeff_indices)))))
         s = np.dot(a[s_coeff_indices-1], np.power(y - 0.5, np.vstack(np.arange(len(s_coeff_indices)))))
 
-        result = self.inverse_transform(mu + s * np.log(y / (1 - y)))
+        result = mu + s * np.log(y / (1 - y))
+        if _apply_transform:
+            result = self.inverse_transform(result)
         return result if isinstance(y, np.ndarray) else result[0]
+
+    # Equation 9
+    def pdf_from_cum_prob(self, y):
+        a = self.a
+        n = self.n_terms
+
+        denominator_terms = []
+        if n >= 2:
+            denominator_terms.append(a[1]/(y * (1 - y)))
+        if n >= 3:
+            denominator_terms.append(a[2] * ( (y - 0.5)/(y * (1 - y)) + np.log(y/(1 - y)) ))
+        if n >= 4:
+            denominator_terms.append(a[3])
+        for k in range(5, n + 1, 2):
+            denominator_terms.append(a[k-1] * (k - 1)/2 + (y - 0.5)**((k - 3)/2))
+        for k in range(6, n + 1, 2):
+            denominator_terms.append(a[k-1] * (y - 0.5)**(k/2 - 1) / (y*(1 - y)) + (k/2 - 1) * (y - 0.5)**(k/2 - 2) * np.log(y/(1 - y)))
+
+        denominator = np.sum(denominator_terms, axis=0)
+        pdf = 1/denominator
+
+        # Adjust for the transformation
+        if (self.lower_bound is not None) or (self.upper_bound is not None):
+            ppf = self.ppf(y, _apply_transform=False)
+            exp_ppf = np.exp(ppf)
+
+            # TODO Handle y = 0 and y = 1 cases
+            if (self.lower_bound is not None) and (self.upper_bound is not None):
+                pdf *= (1 + np.exp(ppf))**2 / ((self.upper_bound - self.lower_bound) * np.exp(ppf))
+            elif self.lower_bound is not None:
+                pdf *= np.exp(-ppf)
+            elif self.upper_bound is not None:
+                pdf *= np.exp(ppf)
+
+        return pdf
 
     def quantile(self, q):
       return self.ppf(q)
 
     def rvs(self, size=1):
         return self.ppf(np.random.uniform(size=size))
+
 
 # Aliases
 TwoPieceUniformTransformed = PieceUniformTransformed
