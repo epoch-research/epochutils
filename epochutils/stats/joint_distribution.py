@@ -8,6 +8,9 @@ from statsmodels.distributions.copula.copulas import CopulaDistribution
 from copula_wrapper import CopulaJoint
 
 
+JointDistribution = CopulaJoint
+
+
 class JointDistributionCond(CopulaJoint):
     """
     Joint distribution from which you can extract conditional samples.
