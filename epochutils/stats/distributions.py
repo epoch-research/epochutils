@@ -282,7 +282,13 @@ class Metalog(rv_continuous):
         if np.isscalar(x):
             return self._cdf_scalar(x)
         else:
-            return np.array([self._cdf_scalar(a) for a in np.atleast_1d(x)])
+            x = np.atleast_1d(x)
+
+            nan_mask = np.isnan(x)
+            result = np.full_like(x, np.nan)
+            result[~nan_mask] = np.array([self._cdf_scalar(a) for a in x[~nan_mask]])
+
+            return result
 
     def _cdf_scalar(self, x):
         if self.lower_bound is not None and x <= self.lower_bound:
