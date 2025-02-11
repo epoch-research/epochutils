@@ -1,6 +1,4 @@
-# TODO
-#  * make the distributions more completed
-
+import warnings
 
 from scipy.stats import rv_continuous
 import numpy as np
@@ -210,7 +208,7 @@ class Metalog(rv_continuous):
             print('Warning: Feasibility check not implemented for more than 3 quantiles')
 
         if not feasible:
-            raise ValueError(f'Failed feasibility check for quantiles {raw_quantiles}')
+            warnings.warn(f'Failed feasibility check for quantiles {raw_quantiles}')
 
     # Equations 7 and 8
     def _fit_metalog(self, quantiles, n_terms, transform):
