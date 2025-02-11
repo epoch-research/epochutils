@@ -1,5 +1,6 @@
 import warnings
 
+from scipy.optimize import bisect
 from scipy.stats import rv_continuous
 import numpy as np
 
@@ -167,11 +168,9 @@ class Metalog(rv_continuous):
             n_terms = len(self.quantiles)
         self.n_terms = n_terms
 
-        self.a = self._fit_metalog(self.quantiles, n_terms, self.transform)
-        if self.a is None:
+        self.metalog_a = self._fit_metalog(self.quantiles, n_terms, self.transform)
+        if self.metalog_a is None:
             raise ValueError('Failed to fit metalog. The Y^T Y matrix is not invertible.')
-
-        self._check_feasibility(self.a, self.raw_quantiles)
 
     def _compute_transforms(self, lower_bound, upper_bound):
         if (lower_bound is not None) and (upper_bound is not None):
@@ -205,10 +204,10 @@ class Metalog(rv_continuous):
             feasible = (a[1] > 0 and abs(a[2])/a[1] <= 1.66711)
         else:
             feasible = True
-            print('Warning: Feasibility check not implemented for more than 3 quantiles')
+            warnings.warn('Warning: Feasibility check not implemented for more than 3 quantiles')
 
         if not feasible:
-            warnings.warn(f'Failed feasibility check for quantiles {raw_quantiles}')
+            raise ValueError(f'Failed feasibility check for quantiles {raw_quantiles}')
 
     # Equations 7 and 8
     def _fit_metalog(self, quantiles, n_terms, transform):
@@ -249,8 +248,11 @@ class Metalog(rv_continuous):
         return a
 
     # Equation 1, 2 and 3
-    def ppf(self, y, _apply_transform=True):
-        a = self.a
+    def _ppf(self, y, _apply_transform=True):
+        input_is_array = isinstance(y, np.ndarray)
+        y = np.atleast_1d(y)
+
+        a = self.metalog_a
         n = self.n_terms
 
         mu_coeff_indices = np.concatenate(([1, 4, 5], np.arange(7, n + 1, 2)))
@@ -262,14 +264,42 @@ class Metalog(rv_continuous):
         mu = np.dot(a[mu_coeff_indices-1], np.power(y - 0.5, np.vstack(np.arange(len(mu_coeff_indices)))))
         s = np.dot(a[s_coeff_indices-1], np.power(y - 0.5, np.vstack(np.arange(len(s_coeff_indices)))))
 
-        result = mu + s * np.log(y / (1 - y))
+        safe_mask = (y > 0) & (y < 1)
+
+        result = np.full_like(y, np.nan)
+        result[y == 0] = self.lower_bound if self.lower_bound is not None else -np.inf
+        result[y == 1] = self.upper_bound if self.upper_bound is not None else np.inf
+
+        result[safe_mask] = mu + s * np.log(y[safe_mask] / (1 - y[safe_mask]))
         if _apply_transform:
-            result = self.inverse_transform(result)
-        return result if isinstance(y, np.ndarray) else result[0]
+            result[safe_mask] = self.inverse_transform(result[safe_mask])
+
+        return result if input_is_array else result[0]
+
+    def cdf(self, x, _apply_transform=True):
+        # For now, use a simple root-finding algorithm
+
+        if np.isscalar(x):
+            return self._cdf_scalar(x)
+        else:
+            return np.array([self._cdf_scalar(a) for a in np.atleast_1d(x)])
+
+    def _cdf_scalar(self, x):
+        if self.lower_bound is not None and x <= self.lower_bound:
+            return 0
+
+        if self.upper_bound is not None and x >= self.upper_bound:
+            return 1
+
+        def objective(p):
+            return self._ppf(p) - x
+
+        p_estimate = bisect(objective, 0, 1)  # Find root in [0, 1]
+        return p_estimate
 
     # Equation 9
     def pdf_from_cum_prob(self, y):
-        a = self.a
+        a = self.metalog_a
         n = self.n_terms
 
         denominator_terms = []
@@ -289,7 +319,7 @@ class Metalog(rv_continuous):
 
         # Adjust for the transformation
         if (self.lower_bound is not None) or (self.upper_bound is not None):
-            ppf = self.ppf(y, _apply_transform=False)
+            ppf = self._ppf(y, _apply_transform=False)
             exp_ppf = np.exp(ppf)
 
             # TODO Handle y = 0 and y = 1 cases
@@ -303,10 +333,10 @@ class Metalog(rv_continuous):
         return pdf
 
     def quantile(self, q):
-      return self.ppf(q)
+      return self._ppf(q)
 
     def rvs(self, size=1):
-        return self.ppf(np.random.uniform(size=size))
+        return self._ppf(np.random.uniform(size=size))
 
 
 # Aliases
