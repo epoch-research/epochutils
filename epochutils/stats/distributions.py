@@ -136,6 +136,8 @@ class PieceInvFracLogUniform(PieceUniformTransformed):
         x = 1 / z
         return x
 
+class FeasibilityError(Exception):
+    pass
 
 class Metalog(rv_continuous):
     """
@@ -146,7 +148,7 @@ class Metalog(rv_continuous):
 
     # TODO Add inline references to sections, equations...
 
-    def __init__(self, quantiles, n_terms=None):
+    def __init__(self, quantiles, n_terms=None, skip_validity_check=False):
         self.raw_quantiles = quantiles.copy()
         self.quantiles = quantiles.copy()
 
@@ -171,6 +173,9 @@ class Metalog(rv_continuous):
         self.metalog_a = self._fit_metalog(self.quantiles, n_terms, self.transform)
         if self.metalog_a is None:
             raise ValueError('Failed to fit metalog. The Y^T Y matrix is not invertible.')
+
+        if not skip_validity_check:
+            self._check_feasibility(self.metalog_a, self.raw_quantiles)
 
     def _compute_transforms(self, lower_bound, upper_bound):
         if (lower_bound is not None) and (upper_bound is not None):
@@ -207,7 +212,7 @@ class Metalog(rv_continuous):
             warnings.warn('Warning: Feasibility check not implemented for more than 3 quantiles')
 
         if not feasible:
-            raise ValueError(f'Failed feasibility check for quantiles {raw_quantiles}')
+            raise FeasibilityError(f'Failed feasibility check for quantiles {raw_quantiles}')
 
     # Equations 7 and 8
     def _fit_metalog(self, quantiles, n_terms, transform):
