@@ -9,11 +9,10 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = ">=3.10,<3.13"
 statsmodels = ">=0.14"
-numpy = "^1.24.2"
+numpy = ">=1.24.2"
 pandas = "^2.0.3"
 scipy = ">=1.10.1,<2"
 matplotlib = "^3.7.1"
-copula-wrapper = "^0.1.6"
 pyairtable = ">=3.0,<4"
 
 [tool.poetry.group.dev.dependencies]

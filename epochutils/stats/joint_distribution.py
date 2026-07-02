@@ -5,7 +5,47 @@ from scipy.stats import multivariate_normal
 from statsmodels.distributions.copula.api import GaussianCopula
 from statsmodels.distributions.copula.copulas import CopulaDistribution
 
-from copula_wrapper import CopulaJoint
+class CopulaJoint:
+    """
+    Joint distribution built from marginals tied together by a Gaussian copula.
+
+    Correlations are supplied as a rank correlation (Spearman or Kendall) and
+    converted to the copula's linear correlation via the Gaussian-copula identities:
+    Spearman rho -> 2*sin(pi*rho/6); Kendall tau -> sin(pi*tau/2).
+
+    marginals: dict of {name: scipy frozen distribution}, order-preserving.
+    spearman_rho / kendall_tau: dict of {(name_a, name_b): value} pairwise rank
+    correlations (pass at most one; omit or pass {} for independence).
+    """
+
+    def __init__(self, marginals, spearman_rho=None, kendall_tau=None):
+        if spearman_rho is not None and kendall_tau is not None:
+            raise ValueError("Pass only one of spearman_rho or kendall_tau")
+
+        self.marginals = marginals
+        names = list(marginals)
+        index = {name: i for i, name in enumerate(names)}
+        k = len(names)
+
+        if kendall_tau is not None:
+            pairwise, to_linear = kendall_tau, lambda t: np.sin(np.pi * t / 2)
+        else:
+            pairwise, to_linear = (spearman_rho or {}), lambda r: 2 * np.sin(np.pi * r / 6)
+
+        corr = np.eye(k)
+        for (name_a, name_b), value in pairwise.items():
+            i, j = index[name_a], index[name_b]
+            corr[i, j] = corr[j, i] = to_linear(value)
+
+        copula = GaussianCopula(corr=corr, k_dim=k)
+        self._wrapped = CopulaDistribution(copula, list(marginals.values()))
+
+    def rvs(self, nobs=2, random_state=None):
+        samples = self._wrapped.rvs(nobs=nobs, random_state=random_state)
+        return self.samples_to_df(samples)
+
+    def samples_to_df(self, rvs):
+        return pd.DataFrame({name: rvs[:, i] for i, name in enumerate(self.marginals)})
 
 
 JointDistribution = CopulaJoint
