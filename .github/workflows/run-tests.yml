@@ -11,32 +11,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.10']
-        poetry-version: ['2.1.3']
+        python-version: ['3.10', '3.11', '3.12']
 
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Install poetry ${{ matrix.poetry-version }}
-      run: |
-        python -m ensurepip
-        python -m pip install --upgrade pip
-        python -m pip install poetry==${{ matrix.poetry-version }}
-
-    - name: View poetry --help
-      run: poetry --help
-
-    - name: Install dependencies
-      shell: bash
-      run: python -m poetry install
+    - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
 
     - name: Test with pytest
-      run: |
-        python -m poetry run pytest -v tests
+      run: uv run --python ${{ matrix.python-version }} pytest -v tests
