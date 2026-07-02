@@ -1,0 +1,40 @@
+# Template: per-repo "Upload to Airtable" workflow.
+# Copy into a data repo's .github/workflows/ and adjust the noted line.
+#
+# Prerequisites in the data repo:
+#   - epochutils as a git dependency in pyproject.toml, e.g.:
+#       [tool.uv.sources]
+#       epochutils = { git = "https://github.com/epoch-research/epochutils.git", branch = "main" }
+#   - GitHub Environments `production` (main-only deployment branch policy) and
+#     `test`, each with an AIRTABLE_BASE_ID variable + AIRTABLE_API_KEY secret.
+#   - Branch protection on main (see README "Security model").
+
+name: Upload to Airtable
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency: airtable-upload-${{ github.event_name }}
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    # push→main uses `production` (prod base); manual dispatch uses `test`.
+    # The environment (production = main-only), not this line, is the boundary.
+    environment: ${{ github.event_name == 'push' && 'production' || 'test' }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+
+      - name: Upload to Airtable
+        env:
+          MPLBACKEND: Agg   # headless matplotlib for notebook generation — DELETE this line if the upload runs no matplotlib
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ vars.AIRTABLE_BASE_ID }}
+        run: uv run python upload_to_airtable.py

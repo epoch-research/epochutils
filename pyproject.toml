@@ -13,6 +13,7 @@ pandas = "^2.0.3"
 scipy = ">=1.10.1,<2"
 matplotlib = "^3.7.1"
 copula-wrapper = "^0.1.6"
+pyairtable = ">=3.0,<4"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.1"
