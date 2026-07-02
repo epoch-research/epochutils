@@ -10,9 +10,6 @@ Quick start
     sync_dataframe(base, "My table", df, "Name", column_types={"Start date": "date"})
 """
 
-# Deferred annotations: X | Y syntax needs this on the py3.9 floor.
-from __future__ import annotations
-
 import datetime
 import math
 
